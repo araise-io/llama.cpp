@@ -3058,6 +3058,7 @@ struct server_context {
                 n_tokens,
                 batch.token    + i,
                 nullptr,
+                0,
                 batch.pos      + i,
                 batch.n_seq_id + i,
                 batch.seq_id   + i,
