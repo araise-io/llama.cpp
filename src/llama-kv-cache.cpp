@@ -78,12 +78,20 @@ bool llama_kv_cache_init(
         LLAMA_LOG_DEBUG("%s: layer %d: n_embd_k_gqa = %d, n_embd_v_gqa = %d\n", __func__, i, n_embd_k_gqa, n_embd_v_gqa);
 
         ggml_backend_buffer_type_t buft;
-        if (offload) {
-            auto * dev = model.dev_layer(i);
-            buft = ggml_backend_dev_buffer_type(dev);
+        bool is_cross_attention = (model.arch == LLM_ARCH_MLLAMA && hparams.cross_attention_layers(i));
+
+        if (is_cross_attention) {
+            // for cross attention layers
+            buft = model.select_buft(i, offload, type_k, n_embd_k_gqa, kv_size);
         } else {
-            buft = ggml_backend_cpu_buffer_type();
+            if (offload) {
+                auto * dev = model.dev_layer(i);
+                buft = ggml_backend_dev_buffer_type(dev);
+            } else {
+                buft = ggml_backend_cpu_buffer_type();
+            }
         }
+
         ggml_context * ctx = ctx_for_buft(buft);
 
         if (!ctx) {
@@ -91,8 +99,17 @@ bool llama_kv_cache_init(
             return false;
         }
 
-        ggml_tensor * k = ggml_new_tensor_1d(ctx, type_k, n_embd_k_gqa*kv_size);
-        ggml_tensor * v = ggml_new_tensor_1d(ctx, type_v, n_embd_v_gqa*kv_size);
+        ggml_tensor * k;
+        ggml_tensor * v;
+
+        if (is_cross_attention) {
+            k = ggml_new_tensor_3d(ctx, GGML_TYPE_F32, hparams.n_embd_head_k, 6404, hparams.n_head_kv(i));
+            v = ggml_new_tensor_3d(ctx, GGML_TYPE_F32, hparams.n_embd_head_v, 6404, hparams.n_head_kv(i));
+        } else {
+            k = ggml_new_tensor_1d(ctx, type_k, n_embd_k_gqa*kv_size);
+            v = ggml_new_tensor_1d(ctx, type_v, n_embd_v_gqa*kv_size);
+        }
+
         ggml_format_name(k, "cache_k_l%d", i);
         ggml_format_name(v, "cache_v_l%d", i);
         cache.k_l.push_back(k);

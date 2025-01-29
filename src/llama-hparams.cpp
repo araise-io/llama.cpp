@@ -1,6 +1,7 @@
 #include "llama-hparams.h"
 
 #include "ggml.h"
+#include <algorithm>
 
 uint32_t llama_hparams::n_head(uint32_t il) const {
     if (il < n_layer) {
@@ -68,4 +69,8 @@ uint32_t llama_hparams::n_embd_v_s() const {
 
     // corresponds to Mamba's ssm_states size
     return ssm_d_state * ssm_d_inner;
+}
+
+bool llama_hparams::cross_attention_layers(uint32_t il) const {
+    return std::find(cross_attn_layers.begin(), cross_attn_layers.end(), il) != cross_attn_layers.end();
 }

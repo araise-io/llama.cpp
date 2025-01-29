@@ -62,6 +62,7 @@ enum llm_type {
     LLM_TYPE_40B,
     LLM_TYPE_65B,
     LLM_TYPE_70B,
+    LLM_TYPE_90B,
     LLM_TYPE_236B,
     LLM_TYPE_314B,
     LLM_TYPE_671B,
@@ -281,6 +282,16 @@ struct llama_layer {
     struct ggml_tensor * ffn_up_scale   = nullptr;
     struct ggml_tensor * ffn_down_scale = nullptr;
 
+    // cross attention
+    struct ggml_tensor * cross_attn_k_norm = nullptr;
+    struct ggml_tensor * cross_attn_k_proj = nullptr;
+    struct ggml_tensor * cross_attn_o_proj = nullptr;
+    struct ggml_tensor * cross_attn_q_norm = nullptr;
+    struct ggml_tensor * cross_attn_q_proj = nullptr;
+    struct ggml_tensor * cross_attn_v_proj = nullptr;
+    struct ggml_tensor * cross_attn_attn_gate = nullptr;
+    struct ggml_tensor * cross_attn_mlp_gate = nullptr;
+
     struct llama_layer_posnet posnet;
 
     struct llama_layer_convnext convnext;
@@ -359,6 +370,7 @@ struct llama_model {
     ggml_backend_dev_t dev_output() const;
 
     ggml_backend_buffer_type_t select_buft(int il) const;
+    ggml_backend_buffer_type_t select_buft(int il, bool offload, ggml_type type_k, const uint32_t n_embd_k_gqa, uint32_t kv_size) const;
 
     const struct ggml_tensor * get_tensor(const char * name) const;
 
